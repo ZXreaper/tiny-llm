@@ -12,10 +12,10 @@ def scaled_dot_product_attention_simple(
     d_k = query.shape[-1]
     if scale is None:
         scale = d_k ** -0.5
-    attention_weights = mx.matmul(query, key.transpose(-1, -2)) * scale
+    attention_weights = mx.matmul(query, key.swapaxes(-2, -1)) * scale
     if mask is not None:
         attention_weights = attention_weights + mask
-    attention_weights = softmax(attention_weights, dim=-1)
+    attention_weights = softmax(attention_weights, axis=-1)
     return mx.matmul(attention_weights, value)
 
 
