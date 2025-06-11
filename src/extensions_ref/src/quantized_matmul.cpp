@@ -93,7 +93,7 @@ void quantized_matmul_impl(const mx::array &scales, const mx::array &biases, con
     }
 
     // Launch the CPU kernel
-    encoder.dispatch([out_ptr = out.data<float16_t>(), out_shape = out.shape(), out_strides = out.strides(),
+    encoder.dispatch([out_ptr = out.data<float_t>(), out_shape = out.shape(), out_strides = out.strides(),
                       a = mx::array::unsafe_weak_copy(a), b = mx::array::unsafe_weak_copy(b),
                       scales = mx::array::unsafe_weak_copy(scales), biases = mx::array::unsafe_weak_copy(biases)]() {
         int M = a.shape()[0];
@@ -102,10 +102,10 @@ void quantized_matmul_impl(const mx::array &scales, const mx::array &biases, con
         const int group_size = 64;
         const int bits = 4;
         const int group_per_row = N / group_size;
-        const float16_t *a_ptr = a.data<float16_t>();
+        const float_t *a_ptr = a.data<float_t>();
         const uint32_t *b_ptr = b.data<uint32_t>();
-        const float16_t *scales_ptr = scales.data<float16_t>();
-        const float16_t *biases_ptr = biases.data<float16_t>();
+        const float_t *scales_ptr = scales.data<float_t>();
+        const float_t *biases_ptr = biases.data<float_t>();
         uint32_t item_mask = (1 << bits) - 1;
         for (int i = 0; i < M; i++) {
             for (int k = 0; k < K; k++) {
@@ -115,8 +115,8 @@ void quantized_matmul_impl(const mx::array &scales, const mx::array &biases, con
                         mx::elem_to_loc(k * group_per_row + group_idx, scales.shape(), scales.strides());
                     int64_t biases_loc =
                         mx::elem_to_loc(k * group_per_row + group_idx, biases.shape(), biases.strides());
-                    float16_t scale = scales_ptr[scales_loc];
-                    float16_t bias = biases_ptr[biases_loc];
+                    float_t scale = scales_ptr[scales_loc];
+                    float_t bias = biases_ptr[biases_loc];
                     int64_t b_loc = mx::elem_to_loc((k * N + group_idx * group_size) / 8, b.shape(), b.strides());
                     int64_t a_loc = mx::elem_to_loc(i * N + group_idx * group_size, a.shape(), a.strides());
                     const int packs_per_item = 32 / bits;
@@ -134,7 +134,7 @@ void quantized_matmul_impl(const mx::array &scales, const mx::array &biases, con
                     }
                 }
                 int64_t out_loc = mx::elem_to_loc(i * K + k, out_shape, out_strides);
-                out_ptr[out_loc] = static_cast<float16_t>(sum);
+                out_ptr[out_loc] = static_cast<float_t>(sum);
             }
         }
     });
