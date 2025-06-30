@@ -1,4 +1,4 @@
-from tiny_llm_ext_ref import quantized_matmul
+from extensions_ref.tiny_llm_ext_ref import quantized_matmul
 import mlx.core as mx
 import numpy as np
 
