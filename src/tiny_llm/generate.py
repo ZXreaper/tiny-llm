@@ -11,7 +11,32 @@ def simple_generate(
     prompt: str,
     sampler: Callable[[mx.array], mx.array] | None,
 ) -> str:
-    pass
+    def _step(model, y, offset):
+        logits = model(y[None], offset)   # y[None] 相当于 y.reshape(1, -1) / y[np.newaxis]，其作用是：在第 0 维增加一个维度
+        logits = logits[:, -1, :]         # 只计算最后一个token的概率就行
+        logprobs = logits - mx.logsumexp(
+            logits, keepdims=True
+        )
+        if sampler is None:
+            y = mx.argmax(logprobs, axis=-1)
+        else:
+            y = sampler(logprobs)
+        return y
+
+    # prefill with the prompt
+    tokens = mx.array(tokenizer.encode(prompt, add_special_tokens=False))
+    detokenizer = tokenizer.detokenizer
+    detokenizer.reset()
+    # generate/decode
+    while True:
+        token = _step(model, tokens, tokens.size)
+        mx.eval(token)
+        tokens = mx.concat([tokens, token])
+        if token.item() == tokenizer.eos_token:
+            break
+        detokenizer.add_token(token.item())
+        print(detokenizer.last_segment, end='', flush=True)
+
 
 
 def simple_generate_with_kv_cache(
